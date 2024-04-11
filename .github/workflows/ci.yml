@@ -26,12 +26,3 @@ jobs:
           ./gradlew installdist
           ./gradlew bootjar
 
-  deploy:
-    runs-on: ubuntu-latest
-    container: openjdk:17-oracle
-    needs: build
-    steps:
-      - uses: actions/checkout@v2
-      - name: deploy
-        run: ls
-

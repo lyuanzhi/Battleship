@@ -1,0 +1,173 @@
+Game mode selection:
+
+1. human (A) vs human (B)
+2. human (A) vs computer (B)
+3. computer (A) vs human (B)
+4. computer (A) vs computer (B)
+Which one do you want to choose? (Enter 1-4)
+Player A hit a Submarine!
+Player B hit a Submarine!
+Player A missed!
+Player B missed!
+Player A hit a Submarine!
+Player B hit a Submarine!
+Player A missed!
+Player B missed!
+Player A hit a Destroyer!
+Player B hit a Destroyer!
+Player A missed!
+Player B missed!
+Player A hit a Destroyer!
+Player B hit a Destroyer!
+Player A missed!
+Player B missed!
+Player A hit a Destroyer!
+Player B hit a Destroyer!
+Player A missed!
+Player B missed!
+Player A hit a Submarine!
+Player B hit a Submarine!
+Player A missed!
+Player B missed!
+Player A hit a Submarine!
+Player B hit a Submarine!
+Player A missed!
+Player B missed!
+Player A hit a Destroyer!
+Player B hit a Destroyer!
+Player A missed!
+Player B missed!
+Player A hit a Destroyer!
+Player B hit a Destroyer!
+Player A missed!
+Player B missed!
+Player A hit a Destroyer!
+Player B hit a Destroyer!
+Player A missed!
+Player B missed!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A missed!
+Player B missed!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A missed!
+Player B missed!
+Player A hit a Destroyer!
+Player B hit a Destroyer!
+Player A missed!
+Player B missed!
+Player A hit a Destroyer!
+Player B hit a Destroyer!
+Player A missed!
+Player B missed!
+Player A hit a Destroyer!
+Player B hit a Destroyer!
+Player A missed!
+Player B missed!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A missed!
+Player B missed!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A missed!
+Player B missed!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A hit a Battleship!
+Player B hit a Battleship!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A missed!
+Player B missed!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A hit a Carrier!
+Player B hit a Carrier!
+Player A hit a Carrier!
+Player A Win!

@@ -1,0 +1,24 @@
+image: openjdk:17-oracle
+
+stages:
+  - test
+  - build
+  - deploy
+
+test:
+  stage: test
+  script:
+    - ./gradlew test
+
+build:
+  stage: build
+  script:
+    - ./gradlew build
+    - ./gradlew installdist
+
+pages:
+  stage: deploy
+  script:
+    - ls
+  only:
+    - main

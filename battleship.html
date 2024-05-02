@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>BattleShip</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script type="text/javascript">
+        var socket = io('https://lyuanzhi.com:8086');
+        var roomConfig = null;
+        var enermyId = null;
+        var dataList = []
+        var idList = ['s1', 's2', 'd1', 'd2', 'b1', 'b2', 'b3', 'b4', 'c1', 'c2', 'c3', 'c4'];
+        var positionList = [
+            [[0, 0], [1, 0]],
+            [[0, 0], [0, 1]],
+            [[0, 0], [1, 0], [2, 0]],
+            [[0, 0], [0, 1], [0, 2]],
+            [[0, 1], [1, 0], [1, 1], [1, 2]],
+            [[0, 0], [1, 0], [1, 1], [2, 0]],
+            [[0, 0], [0, 1], [0, 2], [1, 1]],
+            [[0, 1], [1, 0], [1, 1], [2, 1]],
+            [[0, 0], [1, 0], [2, 0], [2, 1], [3, 0], [3, 1], [4, 1]],
+            [[0, 1], [0, 2], [0, 3], [0, 4], [1, 0], [1, 1], [1, 2]],
+            [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [3, 1], [4, 1]],
+            [[0, 2], [0, 3], [0, 4], [1, 0], [1, 1], [1, 2], [1, 3]]
+        ];
+        var scanPosList = [
+            [-3, 0],
+            [-2, -1], [-2, 0], [-2, 1],
+            [-1, -2], [-1, -1], [-1, 0], [-1, 1], [-1, 2],
+            [0, -3], [0, -2], [0, -1], [0, 0], [0, 1], [0, 2], [0, 3],
+            [1, -2], [1, -1], [1, 0], [1, 1], [1, 2],
+            [2, -1], [2, 0], [2, 1],
+            [3, 0]
+        ]
+        var colorList = ['#41729F', '#41729F', '#6B8E23', '#6B8E23', 'none', '#B22222', '#B22222', 'none', '#FFA07A', 'none', '#FFA07A', 'none'];
+        var colorList2 = ['#41729F', '#41729F', '#6B8E23', '#6B8E23', '#B22222', '#B22222', '#B22222', '#B22222', '#FFA07A', '#FFA07A', '#FFA07A', '#FFA07A'];
+        var directionList = ['V', 'H', 'V', 'H', 'U', 'R', 'D', 'L', 'U', 'R', 'D', 'L'];
+        var shipNameList = ['Submarine', 'Submarine', 'Destroyer', 'Destroyer', 'Battleship', 'Battleship', 'Battleship', 'Battleship', 'Carrier', 'Carrier', 'Carrier', 'Carrier'];
+        var shipIndex = null;
+        var messegeList = ['Please Place Your Ships', 'Waiting for Your Enemy', 'Your Turn']
+        var curAction = null;
+        var colorMap = new Map();
+        colorMap.set('Submarine', '#41729F');
+        colorMap.set('Destroyer', '#6B8E23');
+        colorMap.set('Battleship', '#B22222');
+        colorMap.set('Carrier', '#FFA07A');
+        var gameOver = "";
+        var startMoving = false;
+        var moveOldRow = null;
+        var moveOldCol = null;
+
+        socket.on('connect', function () {
+            console.log('Connected to the server');
+            socket.emit('get_rooms', { myId: socket.id });
+            // document.getElementById("title").textContent = socket.id;
+        });
+
+        socket.on('get_rooms_resp', function (data) {
+            if (data.code == 200) {
+                let rooms = document.getElementById("room-list");
+                while (rooms.firstChild) {
+                    rooms.removeChild(rooms.firstChild);
+                }
+                dataList = data.data;
+                for (let i = 0; i < data.data.length; i++) {
+                    let room = document.createElement("div");
+                    room.innerHTML = data.data[i].playerName + "'s Room";
+                    room.className = "room-item animate__animated animate__fadeIn";
+                    room.index = i;
+                    room.onclick = function () {
+                        enermyId = dataList[this.index].myId;
+                        roomConfig = dataList[this.index];
+                        // console.log("HostID: ",roomConfig.myId)
+                        // console.log("EnermyID: ",enermyId)
+                        let data1 = {
+                            hostId: dataList[this.index].myId,
+                            myId: socket.id,
+                            enermyId: dataList[this.index].myId
+                        };
+                        socket.emit('enter_room', data1);
+                    }
+                    rooms.appendChild(room);
+                }
+            }
+        });
+
+        socket.on('enter_room_resp', function (data) {
+            if (data.code == 200) {
+                if (data.data.myId == socket.id) {
+                    hideElement('form-container');
+                    hideElement('list-container');
+                    hideElement('buttons');
+                    showElement('board-container');
+                    createBoard('myBoard', data.data.width, data.data.height);
+                    createBoard('enemyBoard', data.data.width, data.data.height);
+                } else {
+                    enermyId = data.data.myId;
+                    // console.log("EnermyID: ",enermyId)
+                }
+            } else {
+                enermyId = null;
+                roomConfig = null;
+                Toastify({
+                    text: data.message,
+                    duration: 3000
+                }).showToast();
+            }
+        });
+
+        socket.on('create_room_resp', function (data) {
+            if (data.code == 200) {
+                if (data.data.myId == socket.id) {
+                    hideElement('form-container');
+                    hideElement('list-container');
+                    hideElement('buttons');
+                    showElement('board-container');
+                    roomConfig = data.data;
+                    // console.log("HostID: ",roomConfig.myId)
+                    createBoard('myBoard');
+                    createBoard('enemyBoard');
+                }
+                socket.emit('get_rooms', { myId: socket.id });
+            } else {
+                Toastify({
+                    text: data.message,
+                    duration: 3000
+                }).showToast();
+            }
+        });
+
+        function createBoard(id) {
+            let board = document.getElementById(id);
+            while (board.firstChild) {
+                board.removeChild(board.firstChild);
+            }
+            board.style.width = roomConfig.width * 30 + "px";
+            board.style.height = roomConfig.height * 30 + "px";
+            board.style.gridTemplateColumns = "repeat(" + roomConfig.width + ", 1fr)";
+            board.style.gridTemplateRows = "repeat(" + roomConfig.height + ", 1fr)";
+            for (let i = 0; i < roomConfig.width * roomConfig.height; i++) {
+                let cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.id = id + "_" + i;
+                cell.rowIndex = Math.floor(i / roomConfig.width);
+                cell.colIndex = i % roomConfig.width;
+                if (id == 'myBoard')
+                    cell.onclick = clickMyBoard;
+                else
+                    cell.onclick = clickEnemyBoard;
+                if (id == 'myBoard')
+                    cell.shipType = "";
+                if (id != 'myBoard') {
+                    cell.addEventListener('mouseover', function () {
+                        if (curAction != 'scanChoose') return;
+                        for (let j = 0; j < scanPosList.length; j++) {
+                            if (this.rowIndex + scanPosList[j][0] < 0 || this.rowIndex + scanPosList[j][0] >= roomConfig.height ||
+                                this.colIndex + scanPosList[j][1] < 0 || this.colIndex + scanPosList[j][1] >= roomConfig.width)
+                                continue;
+                            document.getElementById('enemyBoard_' + ((this.rowIndex + scanPosList[j][0]) *
+                                roomConfig.width + (this.colIndex + scanPosList[j][1]))).classList.add('hoverEffect');
+                        }
+                    });
+                    cell.addEventListener('mouseout', function () {
+                        if (curAction != 'scanChoose') return;
+                        for (let j = 0; j < scanPosList.length; j++) {
+                            if (this.rowIndex + scanPosList[j][0] < 0 || this.rowIndex + scanPosList[j][0] >= roomConfig.height ||
+                                this.colIndex + scanPosList[j][1] < 0 || this.colIndex + scanPosList[j][1] >= roomConfig.width)
+                                continue;
+                            document.getElementById('enemyBoard_' + ((this.rowIndex + scanPosList[j][0]) *
+                                roomConfig.width + (this.colIndex + scanPosList[j][1]))).classList.remove('hoverEffect');
+                        }
+                    });
+                }
+                board.appendChild(cell);
+            }
+            document.getElementById('SN').innerHTML = '(' + roomConfig.submarineNum + ')';
+            document.getElementById('DN').innerHTML = '(' + roomConfig.destroyerNum + ')';
+            document.getElementById('BN').innerHTML = '(' + roomConfig.battleshipNum + ')';
+            document.getElementById('CN').innerHTML = '(' + roomConfig.carrierNum + ')';
+            document.getElementById('moveN').innerHTML = '(' + roomConfig.moveRemain + ')';
+            document.getElementById('scanN').innerHTML = '(' + roomConfig.scanRemain + ')';
+            chooseAction('fireChoose', 'moveChoose', 'scanChoose', 'fireAction', 'moveAction', 'scanAction');
+            chooseShip('s1');
+            document.getElementById('messege').innerHTML = messegeList[0];
+            document.getElementById('messege').style.color = '#FFB6C1';
+            document.getElementById('scanItem_0').innerHTML = '';
+            document.getElementById('scanItem_1').innerHTML = '';
+            document.getElementById('scanItem_2').innerHTML = '';
+            document.getElementById('scanItem_3').innerHTML = '';
+            document.getElementById('scanItem_4').innerHTML = '';
+        }
+
+        function clickMyBoard() {
+            if (gameOver != "") return;
+            if ((shipNameList[shipIndex] == "Submarine" && roomConfig.submarineNum <= 0) ||
+                (shipNameList[shipIndex] == "Destroyer" && roomConfig.destroyerNum <= 0) ||
+                (shipNameList[shipIndex] == "Battleship" && roomConfig.battleshipNum <= 0) ||
+                (shipNameList[shipIndex] == "Carrier" && roomConfig.carrierNum <= 0)) {
+                if (document.getElementById('messege').innerHTML != messegeList[2]) {
+                    return;
+                }
+                if (curAction == 'moveChoose') {
+                    if (document.getElementById('moveN').innerHTML == '(0)') return;
+                    if (startMoving == false) {
+                        let c = document.getElementById('myBoard_' + (this.rowIndex * roomConfig.width + this.colIndex));
+                        if (c.shipType == '') {
+                            Toastify({
+                                text: 'Please choose a ship',
+                                duration: 3000
+                            }).showToast();
+                            return;
+                        }
+                        chooseShip(c.shipType);
+                        moveOldRow = this.rowIndex;
+                        moveOldCol = this.colIndex;
+                        startMoving = true;
+                        c.style.opacity = '0.5';
+                    } else {
+                        let data = {
+                            hostId: roomConfig.myId,
+                            myId: socket.id,
+                            oldRow: moveOldRow,
+                            oldColomn: moveOldCol,
+                            newRow: this.rowIndex,
+                            newColomn: this.colIndex,
+                            newOrientation: directionList[shipIndex],
+                            index: shipIndex
+                        }
+                        socket.emit('move', data);
+                    }
+                }
+                return;
+            }
+            let data = {
+                hostId: roomConfig.myId,
+                myId: socket.id,
+                shipName: shipNameList[shipIndex],
+                row: this.rowIndex,
+                colomn: this.colIndex,
+                orientation: directionList[shipIndex],
+                index: shipIndex
+            }
+            socket.emit('place', data);
+        }
+
+        socket.on('move_resp', function (data) {
+            // console.log(data);
+            if (data.code == 200) {
+                if (data.data.isYourTurn == true) {
+                    document.getElementById('messege').innerHTML = messegeList[2];
+                }
+                else {
+                    document.getElementById('messege').innerHTML = messegeList[1];
+                    document.getElementById('moveN').innerHTML = '(' + data.data.moveRemain + ')';
+                    document.getElementById('myBoard_' + (moveOldRow * roomConfig.width + moveOldCol)).style.opacity = '1';
+                    moveOldRow = null;
+                    moveOldCol = null;
+                    startMoving = false;
+                    for (let i = 0; i < data.data.oldShipCoords.length; i++) {
+                        document.getElementById('myBoard_' + (data.data.oldShipCoords[i].row * roomConfig.width + data.data.oldShipCoords[i].column)).style.background = '';
+                        document.getElementById('myBoard_' + (data.data.oldShipCoords[i].row * roomConfig.width + data.data.oldShipCoords[i].column)).shipType = "";
+                    }
+                    for (let i = 0; i < data.data.newShipCoords.length; i++) {
+                        if (data.data.newShipHits[i] == true) {
+                            document.getElementById('myBoard_' + (data.data.newShipCoords[i].row * roomConfig.width +
+                                data.data.newShipCoords[i].column)).style.background = colorList2[data.data.index] + ' url(Battleship/pics/attacked.png) no-repeat center/100% 100%';
+                        } else {
+                            document.getElementById('myBoard_' + (data.data.newShipCoords[i].row * roomConfig.width +
+                                data.data.newShipCoords[i].column)).style.background = colorList2[data.data.index];
+                        }
+                        document.getElementById('myBoard_' + (data.data.newShipCoords[i].row * roomConfig.width +
+                            data.data.newShipCoords[i].column)).shipType = idList[data.data.index];
+                    }
+                }
+            } else {
+                Toastify({
+                    text: data.message,
+                    duration: 3000
+                }).showToast();
+                document.getElementById('myBoard_' + (moveOldRow * roomConfig.width + moveOldCol)).style.opacity = '1';
+                moveOldRow = null;
+                moveOldCol = null;
+                startMoving = false;
+            }
+        });
+
+        function clickEnemyBoard() {
+            if (gameOver != "") return;
+            if (document.getElementById('messege').innerHTML != messegeList[2]) {
+                return;
+            }
+            if (curAction == 'fireChoose') {
+                let data = {
+                    hostId: roomConfig.myId,
+                    myId: socket.id,
+                    row: this.rowIndex,
+                    colomn: this.colIndex
+                }
+                socket.emit('fire', data);
+            }
+            if (curAction == 'scanChoose') {
+                if (document.getElementById('scanN').innerHTML == '(0)') return;
+                let data = {
+                    hostId: roomConfig.myId,
+                    myId: socket.id,
+                    row: this.rowIndex,
+                    colomn: this.colIndex
+                }
+                socket.emit('scan', data);
+            }
+        }
+
+        socket.on('scan_resp', function (data) {
+            if (data.code == 200) {
+                if (data.data.isYourTurn == true) {
+                    document.getElementById('messege').innerHTML = messegeList[2];
+                }
+                else {
+                    document.getElementById('messege').innerHTML = messegeList[1];
+                    document.getElementById('scanN').innerHTML = '(' + data.data.scanRemain + ')';
+                    document.getElementById('scanItem_0').innerHTML = 'Scan Center: (' + data.data.row + ', ' + data.data.colomn + ')';
+                    document.getElementById('scanItem_1').innerHTML = '- Submarines occupy ' + data.data.scanSN + ' squares';
+                    document.getElementById('scanItem_2').innerHTML = '- Destroyers occupy ' + data.data.scanDN + ' squares';
+                    document.getElementById('scanItem_3').innerHTML = '- Battleships occupy ' + data.data.scanBN + ' squares';
+                    document.getElementById('scanItem_4').innerHTML = '- Carriers occupy ' + data.data.scanCN + ' squares';
+                }
+            }
+        });
+
+        socket.on('fire_resp', function (data) {
+            if (data.code == 200) {
+                if (data.data.isYourTurn == true) {
+                    document.getElementById('messege').innerHTML = messegeList[2];
+                    if (data.data.shipName != "") {
+                        let c = document.getElementById('myBoard_' + (data.data.row * roomConfig.width + data.data.colomn));
+                        c.style.background = colorMap.get(data.data.shipName) + ' url(Battleship/pics/attacked.png) no-repeat center/100% 100%';
+                        // console.log(c.shipType)
+                    }
+                }
+                else {
+                    document.getElementById('messege').innerHTML = messegeList[1];
+                    let c = document.getElementById('enemyBoard_' + (data.data.row * roomConfig.width + data.data.colomn));
+                    if (data.data.shipName != "") {
+                        c.style.background = colorMap.get(data.data.shipName);
+                    } else {
+                        c.style.background = 'url(Battleship/pics/X.png) no-repeat center/100% 100%';
+                    }
+                }
+            }
+        });
+
+        socket.on('gameover', function (data) {
+            if (data.code == 200) {
+                gameOver = data.data;
+                document.getElementById('messege').innerHTML = 'You ' + gameOver + '!';
+                document.getElementById('messege').style.color = '#8B0000';
+            }
+        });
+
+        socket.on('ready_resp', function (data) {
+            if (data.code == 200) {
+                if (data.data.isReady == false) {
+                    if ((shipNameList[shipIndex] == "Submarine" && roomConfig.submarineNum <= 0) ||
+                        (shipNameList[shipIndex] == "Destroyer" && roomConfig.destroyerNum <= 0) ||
+                        (shipNameList[shipIndex] == "Battleship" && roomConfig.battleshipNum <= 0) ||
+                        (shipNameList[shipIndex] == "Carrier" && roomConfig.carrierNum <= 0))
+                        document.getElementById('messege').innerHTML = messegeList[1];
+                    else
+                        document.getElementById('messege').innerHTML = messegeList[0];
+                } else {
+                    if (data.data.isYourTurn == true) document.getElementById('messege').innerHTML = messegeList[2];
+                    else document.getElementById('messege').innerHTML = messegeList[1];
+                }
+            }
+        });
+
+        socket.on('place_resp', function (data) {
+            if (data.code == 200) {
+                if (data.data.shipName == "Submarine") roomConfig.submarineNum -= 1;
+                if (data.data.shipName == "Destroyer") roomConfig.destroyerNum -= 1;
+                if (data.data.shipName == "Battleship") roomConfig.battleshipNum -= 1;
+                if (data.data.shipName == "Carrier") roomConfig.carrierNum -= 1;
+                document.getElementById('SN').innerHTML = '(' + roomConfig.submarineNum + ')';
+                document.getElementById('DN').innerHTML = '(' + roomConfig.destroyerNum + ')';
+                document.getElementById('BN').innerHTML = '(' + roomConfig.battleshipNum + ')';
+                document.getElementById('CN').innerHTML = '(' + roomConfig.carrierNum + ')';
+                for (let i = 0; i < positionList[data.data.index].length; i++) {
+                    document.getElementById('myBoard_' + ((data.data.row + positionList[data.data.index][i][0]) *
+                        roomConfig.width + (data.data.colomn + positionList[data.data.index][i][1]))).style.backgroundColor = colorList2[data.data.index];
+                    document.getElementById('myBoard_' + ((data.data.row + positionList[data.data.index][i][0]) *
+                        roomConfig.width + (data.data.colomn + positionList[data.data.index][i][1]))).shipType = idList[data.data.index];
+                }
+                if (roomConfig.submarineNum == 0 && roomConfig.destroyerNum == 0 && roomConfig.battleshipNum == 0 && roomConfig.carrierNum == 0) {
+                    let data1 = {
+                        hostId: roomConfig.myId,
+                        myId: socket.id,
+                        enermyId: enermyId
+                    };
+                    socket.emit('ready', data1);
+                }
+            } else {
+                Toastify({
+                    text: data.message,
+                    duration: 3000
+                }).showToast();
+            }
+        });
+
+        socket.on('leave_room_resp', function (data) {
+            if (data.code == 200) {
+                hideElement('form-container');
+                hideElement('board-container');
+                showElement('list-container');
+                showElement('buttons', 'flex');
+                roomConfig = null;
+                enermyId = null;
+            }
+        });
+
+        function hideElement(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function showElement(id, display = 'block') {
+            document.getElementById(id).style.display = display;
+        }
+
+        function showSetting() {
+            hideElement('list-container');
+            showElement('form-container');
+        }
+
+        function showRooms() {
+            hideElement('form-container');
+            showElement('list-container');
+        }
+
+        function createRoom() {
+            let data = {
+                myId: socket.id,
+                width: parseInt(document.getElementById("boardWidth").value),
+                height: parseInt(document.getElementById("boardHeight").value),
+                playerName: document.getElementById("playerName").value,
+                submarineNum: parseInt(document.getElementById("submarineNum").value),
+                destroyerNum: parseInt(document.getElementById("destroyerNum").value),
+                battleshipNum: parseInt(document.getElementById("battleshipNum").value),
+                carrierNum: parseInt(document.getElementById("carrierNum").value),
+                moveRemain: parseInt(document.getElementById("moveNum").value),
+                scanRemain: parseInt(document.getElementById("scanNum").value)
+            }
+            socket.emit('create_room', data);
+        }
+
+        function leaveRoom() {
+            if (roomConfig == null) {
+                return;
+            }
+            let data = {
+                hostId: roomConfig.myId,
+                myId: socket.id,
+                enermyId: enermyId
+            };
+            socket.emit('leave_room', data);
+        }
+
+        function chooseAction(id, id2, id3, idParent, idParent2, idParent3) {
+            document.getElementById(id).style.background = "url(Battleship/pics/ship.png) no-repeat center/100% 100%";
+            document.getElementById(id2).style.background = "none";
+            document.getElementById(id3).style.background = "none";
+            document.getElementById(idParent).style.color = "#89CFF0";
+            document.getElementById(idParent2).style.color = "#FFB6C1";
+            document.getElementById(idParent3).style.color = "#FFB6C1";
+            curAction = id;
+            if (curAction != 'moveChoose' && startMoving == true) {
+                document.getElementById('myBoard_' + (moveOldRow * roomConfig.width + moveOldCol)).style.opacity = '1';
+                moveOldRow = null;
+                moveOldCol = null;
+                startMoving = false;
+            }
+        }
+
+        function chooseShip(id) {
+            for (let i = 0; i < 12; i++) {
+                if (idList[i] == id) {
+                    shipIndex = i;
+                    document.getElementById(idList[i]).style.background = (colorList[i] == 'none' ? '' : colorList[i] + ' ') + "url(Battleship/pics/hood.png) no-repeat center/100% 100%";
+                } else {
+                    document.getElementById(idList[i]).style.background = colorList[i];
+                }
+
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            chooseAction('fireChoose', 'moveChoose', 'scanChoose', 'fireAction', 'moveAction', 'scanAction');
+            chooseShip('s1');
+        });
+
+    </script>
+</head>
+
+<body>
+    <div id="container">
+        <div class="title" id="title">BattleShip</div>
+        <div id="buttons" style="display: flex; justify-content: space-around; padding: 60px 20% 0 20%;">
+            <div class="button" style="width: 150px;" onclick="showSetting()">Create Room</div>
+            <div class="button" style="width: 150px;" onclick="showRooms()">Join Room</div>
+        </div>
+        <div id="form-container" class="animate__animated animate__bounceInLeft">
+            <div style="font-size: 40px;padding-top: 0px;color:#FFB6C1;padding-bottom: 20px;" class="title">Game Setting
+            </div>
+            <div style="display: flex; justify-content: space-around;">
+                <div class="form-group">
+                    <div class="subTitle">Player Name</div>
+                    <input id="playerName" value="A">
+                </div>
+            </div>
+            <div style="display: flex; justify-content: space-around;">
+                <!-- Board Settings -->
+                <div class="form-group">
+                    <div class="subTitle">Board Width</div>
+                    <input id="boardWidth" value="10">
+                </div>
+                <div class="form-group">
+                    <div class="subTitle">Board Height</div>
+                    <input id="boardHeight" value="20">
+                </div>
+                <!-- Operation Settings -->
+                <div class="form-group">
+                    <div class="subTitle">Move Number</div>
+                    <input id="moveNum" value="3">
+                </div>
+                <div class="form-group">
+                    <div class="subTitle">Scan Number</div>
+                    <input id="scanNum" value="3">
+                </div>
+            </div>
+            <!-- Ship Settings -->
+            <div style="display: flex; justify-content: space-around;">
+                <div class="form-group">
+                    <div class="subTitle">Submarine Number</div>
+                    <input id="submarineNum" value="1">
+                </div>
+                <div class="form-group">
+                    <div class="subTitle">Destroyer Number</div>
+                    <input id="destroyerNum" value="1">
+                </div>
+                <div class="form-group">
+                    <div class="subTitle">Battleship Number</div>
+                    <input id="battleshipNum" value="1">
+                </div>
+                <div class="form-group">
+                    <div class="subTitle">Carrier Number</div>
+                    <input id="carrierNum" value="1">
+                </div>
+            </div>
+            <!-- Submit Button -->
+            <div style="margin-top: 30px;margin-bottom: 15px;">
+                <div class="button" onclick="createRoom()">Start!</div>
+            </div>
+        </div>
+        <div id="list-container" class="animate__animated animate__bounceInLeft">
+            <div style="font-size: 40px;padding-top: 0px;color:#FFB6C1;padding-bottom: 20px;" class="title">Room List
+            </div>
+            <div id="room-list"></div>
+        </div>
+        <div id="board-container">
+            <div id="leave" onclick="leaveRoom()">Leave
+            </div>
+            <div style="display: flex; align-items: center; margin-top: 40px; justify-content: center;">
+                <div
+                    style="padding: 0px 40px 0px 20px;display: flex; justify-content: space-around; align-items: center; flex-direction: column;">
+                    <div class="dancingText" style="margin-bottom: 5px;">Submarine <span id="SN"
+                            class="number">(2)</span></div>
+                    <div style="margin-bottom: 20px; display: flex; align-items: center;">
+                        <div class="board2" onclick="chooseShip('s1')"
+                            style="margin-right: 25px;width:25px;height:50px;grid-template-columns:repeat(1, 1fr);grid-template-rows: repeat(2, 1fr);">
+                            <div id="s1" class="cell2 scolor"></div>
+                            <div class="cell2 scolor"></div>
+                        </div>
+                        <div class="board2" onclick="chooseShip('s2')"
+                            style="width:50px;height:25px;grid-template-columns:repeat(2, 1fr);grid-template-rows: repeat(1, 1fr);">
+                            <div id="s2" class="cell2 scolor"></div>
+                            <div class="cell2 scolor"></div>
+                        </div>
+                    </div>
+                    <div class="dancingText" style="margin-bottom: 5px;">Destroyer <span id="DN"
+                            class="number">(3)</span></div>
+                    <div style="margin-bottom: 20px; display: flex; align-items: center;">
+                        <div class="board2" onclick="chooseShip('d1')"
+                            style="margin-right: 25px;width:25px;height:75px;grid-template-columns:repeat(1, 1fr);grid-template-rows: repeat(3, 1fr);">
+                            <div id="d1" class="cell2 dcolor"></div>
+                            <div class="cell2 dcolor"></div>
+                            <div class="cell2 dcolor"></div>
+                        </div>
+                        <div class="board2" onclick="chooseShip('d2')"
+                            style="width:75px;height:25px;grid-template-columns:repeat(3, 1fr);grid-template-rows: repeat(1, 1fr);">
+                            <div id="d2" class="cell2 dcolor"></div>
+                            <div class="cell2 dcolor"></div>
+                            <div class="cell2 dcolor"></div>
+                        </div>
+                    </div>
+                    <div class="dancingText" style="margin-bottom: 5px;">Battleship <span id="BN"
+                            class="number">(3)</span></div>
+                    <div style="margin-bottom: 20px; display: flex; align-items: center;">
+                        <div class="board2" onclick="chooseShip('b1')"
+                            style="margin-right: 25px;width:75px;height:50px;grid-template-columns:repeat(3, 1fr);grid-template-rows: repeat(2, 1fr);">
+                            <div id="b1" class="cell3"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell3"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell2 bcolor"></div>
+                        </div>
+                        <div class="board2" onclick="chooseShip('b2')"
+                            style="margin-right: 25px;width:50px;height:75px;grid-template-columns:repeat(2, 1fr);grid-template-rows: repeat(3, 1fr);">
+                            <div id="b2" class="cell2 bcolor"></div>
+                            <div class="cell3"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell3"></div>
+                        </div>
+                        <div class="board2" onclick="chooseShip('b3')"
+                            style="margin-right: 25px;width:75px;height:50px;grid-template-columns:repeat(3, 1fr);grid-template-rows: repeat(2, 1fr);">
+                            <div id="b3" class="cell2 bcolor"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell3"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell3"></div>
+                        </div>
+                        <div class="board2" onclick="chooseShip('b4')"
+                            style="width:50px;height:75px;grid-template-columns:repeat(2, 1fr);grid-template-rows: repeat(3, 1fr);">
+                            <div id="b4" class="cell3"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell2 bcolor"></div>
+                            <div class="cell3"></div>
+                            <div class="cell2 bcolor"></div>
+                        </div>
+                    </div>
+                    <div class="dancingText" style="margin-bottom: 5px;">Carrier <span id="CN" class="number">(2)</span>
+                    </div>
+                    <div style="margin-bottom: 20px; display: flex; align-items: center;">
+                        <div class="board2" onclick="chooseShip('c1')"
+                            style="margin-right: 25px;width:50px;height:125px;grid-template-columns:repeat(2, 1fr);grid-template-rows: repeat(5, 1fr);">
+                            <div id="c1" class="cell2 ccolor"></div>
+                            <div class="cell3"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell3"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell3"></div>
+                            <div class="cell2 ccolor"></div>
+                        </div>
+                        <div class="board2" onclick="chooseShip('c2')"
+                            style="margin-right: 25px;width:125px;height:50px;grid-template-columns:repeat(5, 1fr);grid-template-rows: repeat(2, 1fr);">
+                            <div id="c2" class="cell3"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell3"></div>
+                            <div class="cell3"></div>
+                        </div>
+                        <div class="board2" onclick="chooseShip('c3')"
+                            style="margin-right: 25px;width:50px;height:125px;grid-template-columns:repeat(2, 1fr);grid-template-rows: repeat(5, 1fr);">
+                            <div id="c3" class="cell2 ccolor"></div>
+                            <div class="cell3"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell3"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell3"></div>
+                            <div class="cell2 ccolor"></div>
+                        </div>
+                        <div class="board2" onclick="chooseShip('c4')"
+                            style="width:125px;height:50px;grid-template-columns:repeat(5, 1fr);grid-template-rows: repeat(2, 1fr);">
+                            <div id="c4" class="cell3"></div>
+                            <div class="cell3"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell2 ccolor"></div>
+                            <div class="cell3"></div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div id="myBoard" class="board"></div>
+                    <div class="dancingText" style="text-align: center;margin-top: 10px;">Your Ocean
+                    </div>
+                </div>
+                <div class="vs">VS</div>
+                <div>
+                    <div id="enemyBoard" class="board"></div>
+                    <div class="dancingText" style="text-align: center;margin-top: 10px;">Enemy's Ocean</div>
+                </div>
+                <div style="margin-left: 40px;">
+                    <div id="messege"></div>
+                    <div id="fireAction" class="action"
+                        onclick="chooseAction('fireChoose', 'moveChoose', 'scanChoose', 'fireAction', 'moveAction', 'scanAction')">
+                        <div id="fireChoose" class="choose"></div>
+                        <div class="dancingText2">Fire</div>
+                    </div>
+                    <div id="moveAction" class="action"
+                        onclick="chooseAction('moveChoose', 'fireChoose', 'scanChoose', 'moveAction', 'fireAction', 'scanAction')">
+                        <div id="moveChoose" class="choose"></div>
+                        <div class="dancingText2">Move <span id="moveN" class="number">(3)</span></div>
+                    </div>
+                    <div id="scanAction" class="action"
+                        onclick="chooseAction('scanChoose', 'fireChoose', 'moveChoose', 'scanAction', 'fireAction', 'moveAction')">
+                        <div id="scanChoose" class="choose"></div>
+                        <div class="dancingText2">Scan <span id="scanN" class="number">(3)</span></div>
+                    </div>
+                    <div class="scanBox">
+                        <div id="scanItem_0" class="scanItem" style="margin-top: 20px;"></div>
+                        <div id="scanItem_1" class="scanItem"></div>
+                        <div id="scanItem_2" class="scanItem"></div>
+                        <div id="scanItem_3" class="scanItem"></div>
+                        <div id="scanItem_4" class="scanItem"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<style>
+    html {
+        min-height: 100vh;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        height: 100%;
+        min-height: 100vh;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    .scanItem {
+        width: 100%;
+        height: 25%;
+        display: flex;
+        align-items: center;
+    }
+
+    .scanBox {
+        user-select: none;
+        font-weight: bold;
+        font-family: 'Dancing Script', cursive;
+        font-size: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: left;
+        align-items: center;
+        height: 200px;
+        box-sizing: border-box;
+        margin-top: 20px;
+        color: #da8390;
+        padding-left: 10px;
+        width: 300px;
+        border-top: 2px solid #FFB6C1;
+    }
+
+    .scolor {
+        background-color: #41729F;
+    }
+
+    .dcolor {
+        background-color: #6B8E23;
+    }
+
+    .bcolor {
+        background-color: #B22222;
+    }
+
+    .ccolor {
+        background-color: #FFA07A;
+    }
+
+    .action {
+        display: flex;
+        justify-content: left;
+        align-items: center;
+        height: 50px;
+        user-select: none;
+        color: #FFB6C1;
+        background-color: #FFF0F5;
+        border-radius: 25px;
+        padding-left: 10px;
+    }
+
+    #messege {
+        display: flex;
+        justify-content: left;
+        align-items: center;
+        height: 80px;
+        margin-bottom: 20px;
+        user-select: none;
+        color: #FFB6C1;
+        padding-left: 10px;
+        width: 300px;
+        font-weight: bold;
+        font-family: 'Dancing Script', cursive;
+        font-size: 30px;
+        border-bottom: 2px solid #FFB6C1;
+    }
+
+    .action:hover {
+        background-color: #fae6ed;
+    }
+
+    .choose {
+        height: 25px;
+        width: 25px;
+        margin-right: 5px;
+    }
+
+    #container {
+        min-height: 100vh;
+        background: url(Battleship/pics/background.jpg) no-repeat center/100% 100%;
+        padding-bottom: 80px;
+        box-sizing: border-box;
+    }
+
+    .button {
+        padding: 10px 20px;
+        font-size: 30px;
+        font-family: 'Dancing Script', cursive;
+        text-align: center;
+        color: #fff;
+        background-image: linear-gradient(to right, #89CFF0, #B3D9FF);
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        user-select: none;
+    }
+
+    .button:hover {
+        background-image: linear-gradient(to right, #B3D9FF, #89CFF0);
+        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .number {
+        font-size: 18px;
+    }
+
+    #leave {
+        width: 100px;
+        text-align: center;
+        font-weight: bold;
+        font-family: 'Dancing Script', cursive;
+        font-size: 40px;
+        user-select: none;
+        color: #FFB6C1;
+    }
+
+    #leave:hover {
+        color: #f5a0ad;
+    }
+
+    .title {
+        font-size: 80px;
+        font-weight: bold;
+        align-items: center;
+        text-align: center;
+        padding-top: 80px;
+        font-family: 'Dancing Script', cursive;
+        color: #4682B4;
+    }
+
+    .dancingText {
+        user-select: none;
+        min-width: 125px;
+        font-weight: bold;
+        font-family: 'Dancing Script', cursive;
+        color: #FFB6C1;
+        font-size: 24px;
+    }
+
+    .dancingText2 {
+        user-select: none;
+        min-width: 125px;
+        font-weight: bold;
+        font-family: 'Dancing Script', cursive;
+        font-size: 24px;
+    }
+
+    .vs {
+        user-select: none;
+        font-weight: bold;
+        font-family: 'Dancing Script', cursive;
+        color: #FFB6C1;
+        font-size: 25px;
+        margin-left: 30px;
+        margin-right: 30px;
+    }
+
+    .subTitle {
+        width: 100%;
+        display: flex;
+        font-weight: bold;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Dancing Script', cursive;
+        font-size: 16px;
+        color: #FFB6C1;
+    }
+
+    #form-container {
+        display: none;
+        background-color: #FFF0F5;
+        margin: 80px 30% 0px 30%;
+        padding: 40px 40px 40px 40px;
+        border-radius: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    #list-container {
+        display: none;
+        height: 400px;
+        background-color: #FFF0F5;
+        margin: 80px 30% 0px 30%;
+        padding: 40px 40px 40px 40px;
+        border-radius: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    #board-container {
+        overflow: hidden;
+        display: none;
+        opacity: 0.8;
+        background-color: #FFF0F5;
+        margin: 60px 1% 0px 1%;
+        padding: 20px 40px 100px 40px;
+        border-radius: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+        width: 21%;
+    }
+
+    input {
+        width: 100%;
+        min-width: 0;
+        padding: 5px;
+        color: #d37785;
+        border: 2px solid #FFB6C1;
+        border-radius: 10px;
+        font-size: 14px;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    #room-list {
+        max-height: 300px;
+        overflow-y: auto;
+        margin: 20px;
+        padding: 10px;
+    }
+
+    .room-item {
+        padding: 10px;
+        margin: 15px 30px;
+        background-color: #ADD8E6;
+        color: #FFFFFF;
+        border-radius: 10px;
+        transition: transform 0.3s ease;
+        user-select: none;
+    }
+
+    .room-item:hover {
+        transform: scale(1.05);
+    }
+
+    .board {
+        display: grid;
+        border-radius: 5px;
+        border: 2px solid #FFC1CC;
+    }
+
+    .board2 {
+        display: grid;
+        border-radius: 5px;
+    }
+
+    .board2:hover {
+        opacity: 0.8;
+    }
+
+    .cell {
+        border: 1px solid #FFC1CC;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .cell:hover {
+        background-color: #d6e5f5;
+    }
+
+    .hoverEffect {
+        background-color: #d6e5f5;
+    }
+
+    .cell2 {
+        border: 1px solid #FFC1CC;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .cell3 {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
+
+</html>

@@ -11,7 +11,7 @@ A battleship game website where multiple players can play at the same time.
 4. socketio
 5. javascript
 
-## Deploy (AWS)
+## Deploy
 ### Front-end: ```GitHub Pages```
 ### Back-end: ```Google Cloud```
 1. Install Docker

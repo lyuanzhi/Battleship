@@ -10,7 +10,7 @@ public class SocketIOConfig {
     public SocketIOServer socketIOServer() {
         com.corundumstudio.socketio.Configuration config = new com.corundumstudio.socketio.Configuration();
         config.setHostname("0.0.0.0");
-        config.setPort(8082);
+        config.setPort(8086);
         config.setOrigin("*");
 
         final SocketIOServer server = new SocketIOServer(config);

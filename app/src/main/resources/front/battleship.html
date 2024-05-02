@@ -268,7 +268,7 @@
                     for (let i = 0; i < data.data.newShipCoords.length; i++) {
                         if (data.data.newShipHits[i] == true) {
                             document.getElementById('myBoard_' + (data.data.newShipCoords[i].row * roomConfig.width +
-                                data.data.newShipCoords[i].column)).style.background = colorList2[data.data.index] + ' url(pics/attacked.png) no-repeat center/100% 100%';
+                                data.data.newShipCoords[i].column)).style.background = colorList2[data.data.index] + ' url(Battleship/pics/attacked.png) no-repeat center/100% 100%';
                         } else {
                             document.getElementById('myBoard_' + (data.data.newShipCoords[i].row * roomConfig.width +
                                 data.data.newShipCoords[i].column)).style.background = colorList2[data.data.index];
@@ -338,7 +338,7 @@
                     document.getElementById('messege').innerHTML = messegeList[2];
                     if (data.data.shipName != "") {
                         let c = document.getElementById('myBoard_' + (data.data.row * roomConfig.width + data.data.colomn));
-                        c.style.background = colorMap.get(data.data.shipName) + ' url(pics/attacked.png) no-repeat center/100% 100%';
+                        c.style.background = colorMap.get(data.data.shipName) + ' url(Battleship/pics/attacked.png) no-repeat center/100% 100%';
                         // console.log(c.shipType)
                     }
                 }
@@ -348,7 +348,7 @@
                     if (data.data.shipName != "") {
                         c.style.background = colorMap.get(data.data.shipName);
                     } else {
-                        c.style.background = 'url(pics/X.png) no-repeat center/100% 100%';
+                        c.style.background = 'url(Battleship/pics/X.png) no-repeat center/100% 100%';
                     }
                 }
             }
@@ -469,7 +469,7 @@
         }
 
         function chooseAction(id, id2, id3, idParent, idParent2, idParent3) {
-            document.getElementById(id).style.background = "url(pics/ship.png) no-repeat center/100% 100%";
+            document.getElementById(id).style.background = "url(Battleship/pics/ship.png) no-repeat center/100% 100%";
             document.getElementById(id2).style.background = "none";
             document.getElementById(id3).style.background = "none";
             document.getElementById(idParent).style.color = "#89CFF0";
@@ -488,7 +488,7 @@
             for (let i = 0; i < 12; i++) {
                 if (idList[i] == id) {
                     shipIndex = i;
-                    document.getElementById(idList[i]).style.background = (colorList[i] == 'none' ? '' : colorList[i] + ' ') + "url(pics/hood.png) no-repeat center/100% 100%";
+                    document.getElementById(idList[i]).style.background = (colorList[i] == 'none' ? '' : colorList[i] + ' ') + "url(Battleship/pics/hood.png) no-repeat center/100% 100%";
                 } else {
                     document.getElementById(idList[i]).style.background = colorList[i];
                 }
@@ -839,7 +839,7 @@
 
     #container {
         min-height: 100vh;
-        background: url(pics/background.jpg) no-repeat center/100% 100%;
+        background: url(Battleship/pics/background.jpg) no-repeat center/100% 100%;
         padding-bottom: 80px;
         box-sizing: border-box;
     }

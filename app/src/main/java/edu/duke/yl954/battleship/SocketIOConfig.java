@@ -12,6 +12,8 @@ public class SocketIOConfig {
         config.setHostname("0.0.0.0");
         config.setPort(8086);
         config.setOrigin("*");
+        config.setKeyStorePassword("pt3ck07bx45");
+        config.setKeyStore("classpath:lyuanzhi.com.jks");
 
         final SocketIOServer server = new SocketIOServer(config);
         return server;

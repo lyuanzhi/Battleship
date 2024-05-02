@@ -2,21 +2,21 @@
 A battleship game website where multiple players can play at the same time.
 
 ## Demo
-[http://battleship-front.s3-website-us-east-1.amazonaws.com/](http://battleship-front.s3-website-us-east-1.amazonaws.com/)
+[https://lyuanzhi.github.io/Battleship](https://lyuanzhi.github.io/Battleship)
 
 ## Tech Stack
 1. java
 2. gradle
 3. spring
 4. socketio
-5. js/html/css
-6. AWS
+5. javascript
 
 ## Deploy (AWS)
-1. Front-end: ```Amazon S3```
-![](imgs/front.png)
-2. Back-end: ```Amazon EC2```
-![](imgs/back.png)
+### Front-end: ```GitHub Pages```
+### Back-end: ```Google Cloud```
+1. Install Docker
+2. Run ```sudo docker pull lyuanzhi/battleshipback:v1```
+3. Run ```sudo docker run -d -p 8086:8086 lyuanzhi/battleshipback:v1```
 
 ## Functionality
 1. Setup

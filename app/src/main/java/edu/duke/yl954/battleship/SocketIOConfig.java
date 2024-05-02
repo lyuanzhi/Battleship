@@ -4,9 +4,14 @@ import org.springframework.context.annotation.Bean;
 import com.corundumstudio.socketio.*;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Configuration
 public class SocketIOConfig {
+
+    @Autowired
+    private ResourceLoader resourceLoader;
+    
     @Bean
     public SocketIOServer socketIOServer() {
         com.corundumstudio.socketio.Configuration config = new com.corundumstudio.socketio.Configuration();
